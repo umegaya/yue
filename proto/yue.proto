@@ -1,0 +1,39 @@
+syntax = "proto2";
+
+package YueProto;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+//common payload in message
+message HLC {
+	required uint64 walltime = 1;
+	required uint32 logical_ts = 2;
+}
+
+message Node {
+	required fixed64 id = 1;
+	required string address = 2;
+	required uint64 seed = 3;
+}
+
+message ProcessList {
+	repeated fixed64 list = 1 [(gogoproto.casttype) = "ProcessId"];
+	required uint32 limit = 2;
+}
+
+message Actor {
+	required string id = 1;
+	required bytes processes = 2; //ProcessList
+}
+
+message Request {
+
+}
+
+message Notify {
+
+}
+
+message Response {
+	
+}

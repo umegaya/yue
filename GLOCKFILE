@@ -1,0 +1,11 @@
+github.com/Sirupsen/logrus 4b6ea7319e214d98c938f12692336f7ca9348d6b
+github.com/cockroachdb/pq 94a0880a5cc09284fe5677c86e44d5ba342912dc
+github.com/docker/engine-api 68a7b6bebf8f57d559b7788a46c55045438747b9
+github.com/docker/go-connections f549a9393d05688dff0992ef3efd8bbe6c628aeb
+github.com/docker/go-units 5d2041e26a699eaca682e2ea41c8f891e1060444
+github.com/gogo/protobuf d5d4941acc4490628827091cafee2168f8c4bc67
+github.com/lib/pq 165a3529e799da61ab10faed1fabff3662d6193f
+github.com/umegaya/gorp 60e89244495a02484f75e3be02df035d05a38949
+github.com/umegaya/msgpack 9cc9ea51f79767fc0f303e9a0092667d2aedc291
+golang.org/x/net 35b06af0720201bc2f326773a80767387544f8c4
+gopkg.in/vmihailenco/msgpack.v2 2f9488727bacc319c0556432905ea6ec7a1a8d6d
