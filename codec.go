@@ -8,7 +8,7 @@ import (
 	"bufio"
 	"encoding/json"
 
-	proto "yue/proto"
+	proto "github.com/umegaya/yue/proto"
 
 	"github.com/umegaya/msgpack"
 )

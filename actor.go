@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	proto "yue/proto"
+	proto "github.com/umegaya/yue/proto"
 )
 
 

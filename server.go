@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	proto "yue/proto"
+	proto "github.com/umegaya/yue/proto"
 )
 
 // error

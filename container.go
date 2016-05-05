@@ -7,7 +7,7 @@ import (
 	"time"
 	"strings"
 
-	proto "yue/proto"
+	proto "github.com/umegaya/yue/proto"
 
 	"github.com/docker/engine-api/types"
 	"github.com/docker/engine-api/types/container"

@@ -5,7 +5,7 @@ import (
 	"time"
 	"sync"
 
-	proto "yue/proto"
+	proto "github.com/umegaya/yue/proto"
 )
 
 //ExecuterFactory represents object can create Executer object

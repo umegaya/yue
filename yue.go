@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net"
 
-	proto "yue/proto"
+	proto "github.com/umegaya/yue/proto"
 
 	"golang.org/x/net/context"
 )

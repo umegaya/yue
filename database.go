@@ -6,7 +6,7 @@ import (
 	"strings"
 	"database/sql"
 
-	proto "yue/proto"
+	proto "github.com/umegaya/yue/proto"
 
 	_ "github.com/cockroachdb/pq"
 	"github.com/umegaya/gorp"

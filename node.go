@@ -6,7 +6,7 @@ import (
 	"time"
 	"sync"
 
-	proto "yue/proto"
+	proto "github.com/umegaya/yue/proto"
 )
 
 //Account represents one user account
