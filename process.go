@@ -3,6 +3,7 @@ package yue
 import (
 	"log"
 	"time"
+	"fmt"
 	"sync"
 
 	proto "github.com/umegaya/yue/proto"
@@ -60,11 +61,17 @@ func newprocess(owner *actor, conf *SpawnConfig) (*Process, error) {
 func (p *Process) call(method string, args ...interface{}) (r interface{}, err error, rs bool) {
 	defer func() {
 		p.sem.RUnlock()
-        if err := recover(); err != nil {
-            log.Println("call executer panics:", err)
-            amgr().restartq <- p
+        if e := recover(); e != nil {
+            log.Println("call executer panics:", e)
+            tmp, ok := e.(error)
+            if ok {
+            	err = tmp
+            } else {
+            	err = fmt.Errorf("%v", e)
+            }
             r = nil
             rs = true
+            amgr().restartq <- p
         }
     }()
     p.sem.RLock()
@@ -89,7 +96,12 @@ func (p *Process) control(stop bool) (err error) {
         if e := recover(); e != nil {
             log.Println("create executer panics:", e)
             p.Executer = nil
-            err = e.(error)
+            tmp, ok := e.(error)
+            if ok {
+            	err = tmp
+            } else {
+            	err = fmt.Errorf("%v", e)
+            }
         }
 		//死亡したことをマークしておく.(仮にdestroyに失敗していても)
         p.die = stop
@@ -154,7 +166,7 @@ func newprocessmgr() *processmgr {
 //assumed running by goroutine.
 func (pm *processmgr) sweep(c *Config) {
 	//TODO: check idle duration and kill.
-	//but cost is not so low when process id provided by container.
+	//but cost is not so low when process is provided by container.
 }
 
 //spawn creates process by using given factory

@@ -4,6 +4,7 @@ import (
 	"log"
 	"sync"
 	"time"
+	"regexp"
 
 	proto "github.com/umegaya/yue/proto"
 )
@@ -73,7 +74,7 @@ RETRY:
 		if err.Is(ActorProcessGone) {
 			//TODO: how we process the case of conf.Size == 1 (statefull actor)?
 			pid := err.GoneProcessId()
-			if conf, ok := amgr().findConfig(a.id); ok {
+			if conf := amgr().findConfig(a.id); conf != nil {
 				factory := &idemfactory{ conf: conf }
 				if err := db().txn(func (dbh dbh) error {
 					//this code block may be executed repeatedly.
@@ -211,6 +212,7 @@ func (a *actor) proto() (*proto.Actor, error) {
 //idempotent process creator
 type idemfactory struct {
 	conf *ActorConfig
+	params map[string]string
 	proc *Process
 }
 
@@ -242,9 +244,21 @@ type ActorConfig struct {
 					//TODO: should throttle-exceeded actor reject request so that caller try another caller?
 }
 
+func (c *ActorConfig) copy(args []interface{}) *ActorConfig {
+	cp := &ActorConfig{}
+	*cp = *c
+	if cp.SpawnConfig.args == nil {
+		cp.SpawnConfig.args = args	
+	} else {
+		cp.SpawnConfig.args = append(args, cp.SpawnConfig.args...)
+	}
+	return cp
+}
+
 //represents common (internal) actor manager
 type actormgr struct {
 	configs map[string]*ActorConfig
+	reconfigs map[*regexp.Regexp]*ActorConfig
 	actors map[string]*actor
 	restartq chan *Process //restart queue
 	cmtx sync.RWMutex
@@ -254,6 +268,7 @@ type actormgr struct {
 func newactormgr() *actormgr {
 	return &actormgr {
 		configs: make(map[string]*ActorConfig),
+		reconfigs: make(map[*regexp.Regexp]*ActorConfig),
 		actors: make(map[string]*actor),
 		restartq: make(chan *Process),
 		cmtx: sync.RWMutex{},
@@ -266,8 +281,8 @@ func (am *actormgr) start() {
 	ticker := time.NewTicker(1000 * time.Millisecond)
 	for {
 		select {
-		case t := <- ticker.C:
-			log.Printf("tick %v", t)
+		case <- ticker.C:
+			//log.Printf("tick %v", t)
 			//TODO: reload each actor's state
 		case p := <- am.restartq:
 			go p.boot()
@@ -288,23 +303,55 @@ func (am *actormgr) loadActor(act *actor, dbh dbh) *ActorError {
 	return nil
 }
 
+//
+var idPattern *regexp.Regexp = regexp.MustCompile("/:([^/]+)")
+func (am *actormgr) compilePattern(id string) (*regexp.Regexp, error) {
+	if idPattern.MatchString(id) {
+		resrc := idPattern.ReplaceAllString(id, "/(?P<${1}>[^/]+)")
+		log.Printf("resrc = %v", resrc)
+		return regexp.Compile(resrc)
+	}
+	return nil, nil
+}
+
 //registerActorConfig registers actor creation setting for given id
 func (am *actormgr) registerConfig(id string, conf *ActorConfig, args []interface{}) {
 	//avoid modifying original conf, cause it may be reused
-	copy := &ActorConfig{}
-	*copy = *conf
-	copy.SpawnConfig.args = args
+	cp := conf.copy(args)
 	defer am.cmtx.Unlock()
 	am.cmtx.Lock()
-	am.configs[id] = copy
+	re, err := am.compilePattern(id)
+	if err != nil {
+		panic(err.Error())
+	} else if re != nil {
+		am.reconfigs[re] = cp
+	} else {
+		am.configs[id] = cp
+	}
 }
 
-//findSpawnOpts finds actor creation option
-func (am *actormgr) findConfig(id string) (*ActorConfig, bool) {
+//findConfig finds actor creation option
+func (am *actormgr) findConfig(id string) *ActorConfig {
 	defer am.cmtx.RUnlock()
 	am.cmtx.RLock()
-	c, ok := am.configs[id]
-	return c, ok
+	if c, ok := am.configs[id]; ok {
+		return c
+	} 
+	for re, c := range am.reconfigs {
+		if matches := re.FindStringSubmatch(id); matches != nil {
+			if len(matches) > 1 {
+				params := make([]interface{}, len(matches) - 1)
+				for i, m := range matches[1:] { //0th index represents entire match
+					log.Printf("matches %v %v", i, m)
+					params[i] = m
+				}
+				return c.copy(params)
+			} else {
+				return c
+			}
+		}
+	}
+	return nil
 }
 
 //addToCache adds actor object to cache
@@ -324,13 +371,12 @@ func (am *actormgr) findActor(id string) (*actor, bool) {
 
 //ensureLoaded ensure actor which has given id and option *opts* loaded.
 func (am *actormgr) ensureLoaded(id string) (*actor, error) {
-	log.Printf("ensureLoaded %v", id)
 	if a, ok := am.findActor(id); ok {
 	log.Printf("ensureLoaded already %v", id)
 		return a, nil
 	}
-	conf, ok := am.findConfig(id)
-	if !ok || conf == nil {
+	conf := am.findConfig(id)
+	if conf == nil {
 		return nil, newerr(ActorNotFound, id)
 	}
 	factory := &idemfactory{ conf: conf }

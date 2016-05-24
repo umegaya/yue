@@ -255,10 +255,19 @@ func (sv *server) peerByNodeId(node_id proto.NodeId) (peer, bool) {
 func (sv *server) ProcessRequest(r *request, c peer) {
 	//TODO: add timeout check and returns error
 	waitms := 10 //10ms
+	panics := 0
 RETRY:
 	if p, ok := pmgr().find(r.pid); ok {
 		rep, err, restart := p.call(r.method, r.args...)
 		if restart {
+			if err != nil {
+				log.Printf("call panics: %v %v", panics, err)
+				//TODO: move 10 to process configuration
+				if panics++; panics > 10 {
+					c.Raise(r.msgid, newerr(ActorRuntimeError, err.Error()))
+					return
+				}
+			}
 			waitms = waitms * 2
 			if waitms > 1000 {
 				waitms = 1000

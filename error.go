@@ -26,6 +26,7 @@ var errorStrings []string = []string{
 	"actor: no such method: %v %v",
 	"actor: has enough process: %v %v",
 	"process: not exist: %v",
+	"actor: runtime error: %v",
 	"actor: call timeout: %v",
 	"actor: go context error: %v",
 	"invalid payload type: %v",

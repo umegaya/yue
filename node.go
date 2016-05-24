@@ -107,7 +107,22 @@ func NodeIdByAddr(addr string) (proto.NodeId, error) {
 }
 
 func UUIDAt(t time.Time) proto.UUID {
+	if t.UnixNano() < uniqueIDEpoch {
+		return 0
+	}
 	id := uint64(t.UnixNano() - uniqueIDEpoch) / precision
 	return proto.UUID(id << nodeIDBits)
 }
 
+func UUIDBetween(id proto.UUID, start, end time.Time) bool {
+	sid, eid := UUIDAt(start), UUIDAt(end)
+	return sid <= id && id <= eid
+}
+
+func DateByUUID(id proto.UUID) time.Time {
+	tmp := uint64(id)
+	tmp >>= nodeIDBits
+	tmp *= precision
+	tmp += uint64(uniqueIDEpoch)
+	return time.Unix(int64(tmp / (1000 * 1000 * 1000)), int64(tmp % (1000 * 1000 * 1000)))
+}
